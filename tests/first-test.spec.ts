@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("https://playground.bondaracademy.com/");
@@ -49,4 +49,66 @@ test("User-visible locators", async ({ page }) => {
   await page.getByTestId("inputEmail1").fill("test@test.com");
 
   await page.getByTitle("IoT Dashboard").click();
+});
+
+test("Location child elements", async ({ page }) => {
+  await page.locator("nb-card").locator("nb-radio-group").locator(':text-is("Option 1")').click();
+  await page.locator('nb-card nb-radio-group :text-is("Option 2")').click();
+
+  await page.locator("nb-card").getByRole("button", { name: "Sign in" }).first().click();
+
+  await page.locator("nb-card").nth(3).getByRole("button").click();
+});
+
+test("Location parent elements", async ({ page }) => {
+  //await page.locator('nb-card', {hasText: 'Using the Grid'}).getByRole('button').click();
+  await page
+    .locator("nb-card", { has: page.locator("#inputEmail1") })
+    .getByRole("button")
+    .click();
+  await page.locator("nb-card").filter({ hasText: "Using the Grid" }).getByRole("button").click();
+
+  await page
+    .locator("nb-card")
+    .filter({ has: page.locator("nb-checkbox") })
+    .filter({ hasText: "Sign in" })
+    .getByLabel("Email")
+    .fill("test@test.com");
+
+  await page.getByText("Using the Grid").locator("..").getByRole("button").click();
+});
+
+test("Reusing locators", async ({ page }) => {
+  const basicFormSection = page.locator("nb-card", { hasText: "Basic form" });
+  const emailInputField = basicFormSection.getByLabel("Email");
+
+  await emailInputField.fill("test@test.com");
+  await basicFormSection.getByLabel("Password").fill("playwright");
+  await basicFormSection.locator("nb-checkbox").click();
+  await basicFormSection.getByRole("button").click();
+
+  await expect(emailInputField).toHaveValue("test@test.com");
+});
+
+test("Extracting values", async ({ page }) => {
+  //extracting text
+  const basicFormSection = page.locator("nb-card", { hasText: "Basic form" });
+  const submitButtonText = await basicFormSection.getByRole("button").textContent();
+  //console.log(submitButtonText)
+  expect(submitButtonText).toEqual("Submit");
+
+  //extracting multiple text values
+  const allRadioButtonValues = await page.locator("nb-radio").allTextContents();
+  //console.log(allRadioButtonValues)
+  expect(allRadioButtonValues).toContain("Option 1");
+
+  //extracting input field value
+  const emailField = basicFormSection.getByRole("textbox", { name: "Email" });
+  await emailField.fill("test@test.com");
+  const emailFieldValue = await emailField.inputValue();
+  console.log(emailFieldValue);
+
+  // extracting attributes
+  const emailPlaceholder = await emailField.getAttribute("placeholder");
+  console.log(emailPlaceholder);
 });
