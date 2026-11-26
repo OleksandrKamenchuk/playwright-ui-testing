@@ -109,26 +109,52 @@ test("web tables", async ({ page }) => {
   await tableRowByEmail.locator(".nb-checkmark").click();
   await expect(tableRowByEmail.locator("td").last()).toHaveText("35");
 
-  //2. How to select row by a specific column value 
-  const tableRowById = page.getByRole("row").filter({has: page.getByRole("cell").nth(1).getByText("10")});
+  //2. How to select row by a specific column value
+  const tableRowById = page.getByRole("row").filter({ has: page.getByRole("cell").nth(1).getByText("10") });
   await tableRowById.locator(".nb-edit").click();
   await page.locator("tbody").getByPlaceholder("E-mail").fill("test@test.com");
   await page.locator("tbody").locator(".nb-checkmark").click();
-  
-  //3. How to loop through table raws
-  const ages = ["20", "30", "40", "200"]
 
-  for ( let age of ages ) {
+  //3. How to loop through table raws
+  const ages = ["20", "30", "40", "200"];
+
+  for (let age of ages) {
     await page.getByPlaceholder("Age").fill(age);
 
-    if (age == "200"){
+    if (age == "200") {
       await expect(page.locator("tbody")).toContainText("No data found");
     } else {
-      await expect(page.locator("tbody tr").first().locator("td").last()).toHaveText(age)
-      const allTableRows = await page.locator("tbody tr").all(); 
-      for (let row of allTableRows){
-        await expect(row.locator("td").last()).toHaveText(age)
+      await expect(page.locator("tbody tr").first().locator("td").last()).toHaveText(age);
+      const allTableRows = await page.locator("tbody tr").all();
+      for (let row of allTableRows) {
+        await expect(row.locator("td").last()).toHaveText(age);
       }
     }
   }
+});
+
+test("datepicker", async ({ page }) => {
+  await page.getByText("Forms").click();
+  await page.getByText("Datepicker").click();
+
+  const calendarInputField = page.getByPlaceholder("Form Picker");
+  await calendarInputField.click();
+
+  const date = new Date();
+  date.setDate(date.getDate() + 150);
+  const expectedDay = date.getDate().toString();
+  const expectedMonth = date.toLocaleString("En-Us", { month: "short" });
+  const expectedMonthLong = date.toLocaleString("En-Us", { month: "long" });
+  const expectedYear = date.getFullYear();
+  const expectedDate = `${expectedMonth} ${expectedDay}, ${expectedYear}`;
+
+  let currentMonthAndYear = await page.locator("nb-calendar-view-mode").textContent();
+  const expectedMonthAndYear = `${expectedMonthLong} ${expectedYear}`;
+  while(!currentMonthAndYear?.includes(expectedMonthAndYear)){
+    await page.locator(".next-month").click();
+    currentMonthAndYear = await page.locator("nb-calendar-view-mode").textContent();
+  }
+
+  await page.locator(".day-cell:not(.bounding-month)").getByText(expectedDay, { exact: true }).click();
+  await expect(calendarInputField).toHaveValue(expectedDate);
 });
